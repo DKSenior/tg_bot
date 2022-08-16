@@ -133,7 +133,7 @@ def check_response(response):
 
     if not isinstance(homeworks, list):
         raise IncorrectDataTypeError(
-            'В ответе API домашние задания представлены не списком'
+            f'У ответа некорректный тип данных: {type(homeworks)}'
         )
     if homeworks is None:
         raise Exception('В ответе API нет словаря')
