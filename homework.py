@@ -108,12 +108,13 @@ def check_response(response):
     """Проверяет ответ API на корректность."""
     logger.info('Проверка корректности ответа')
 
+    # if not isinstance(response, dict):
+    #     raise IncorrectDataTypeError(
+    #         f'У ответа некорректный тип данных: {type(response)}'
+    #     )
+
     try:
         homeworks = response['homeworks']
-        if not isinstance(homeworks[0], dict):
-            raise IncorrectDataTypeError(
-                f'У ответа некорректный тип данных: {type(response)}'
-            )
     except KeyError as error:
         raise KeyError(f'Ошибка доступа по ключу homeworks: {error}')
 
@@ -182,7 +183,7 @@ def main():
             response = get_api_answer(current_timestamp)
             current_timestamp = response['current_date']
             result = check_response(response)
-            if result[0] is not None:
+            if len(result) != 0:
                 message = parse_status(result[0])
             else:
                 message = 'За последнее время нет домашних заданий'
@@ -194,7 +195,7 @@ def main():
         except Exception as error:
             if str(error) != previous_error:
                 previous_error = str(error)
-                logger.error(error, exc_info=False)
+                logger.error(error, exc_info=True)
                 send_message(bot, str(error))
         finally:
             time.sleep(RETRY_TIME)
