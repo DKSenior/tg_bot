@@ -81,7 +81,7 @@ def check_response(response):
         raise Exception(
             'В ответе API домашние задания представлены не списком'
         )
-    return homeworks_list[0]
+    return homeworks_list
 
 
 def parse_status(homework):
@@ -122,7 +122,7 @@ def main():
         try:
             response = get_api_answer(current_timestamp)
             result = check_response(response)
-            message = parse_status(result)
+            message = parse_status(result[0])
             send_message(bot, message)
         except Exception as error:
             logger.error(error, exc_info=False)
