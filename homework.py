@@ -81,7 +81,7 @@ def check_response(response):
         raise Exception(
             'В ответе API домашние задания представлены не списком'
         )
-    return homeworks_list
+    return homeworks_list[0]
 
 
 def parse_status(homework):
