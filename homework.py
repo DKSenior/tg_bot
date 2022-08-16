@@ -116,7 +116,6 @@ def get_api_answer(current_timestamp):
 def check_response(response):
     """Проверяет ответ API на корректность."""
     logger.info('Проверка корректности ответа')
-
     if not isinstance(response['homeworks'][0], dict):
         raise IncorrectDataTypeError(
             f'У ответа некорректный тип данных: {type(response)}'
