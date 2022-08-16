@@ -1,5 +1,6 @@
 import logging
 import os
+import sys
 import telegram
 import time
 import requests
@@ -7,14 +8,7 @@ import requests
 from dotenv import load_dotenv
 from http import HTTPStatus
 
-logging.basicConfig(
-    level=logging.INFO,
-    format=('%(asctime)s - [%(levelname)s] - %(name)s - '
-            '(%(filename)s).%(funcName)s(%(lineno)d) - %(message)s')
-)
-
 logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
 handler = logging.StreamHandler()
 logger.addHandler(handler)
 formatter = logging.Formatter(
@@ -40,13 +34,50 @@ HOMEWORK_STATUSES = {
 }
 
 
+class AnswerStatusIsNot200Error(Exception):
+    """Статус ответа не равен значению 200."""
+    def __init__(self, *args):
+        if args:
+            self.message = args[0]
+        else:
+            self.message = self.__doc__
+
+    def __str__(self):
+        return f'{self.message} '
+
+
+class RequestReceivingError(Exception):
+    """Ошибка получения ответа на запрос."""
+    def __init__(self, *args):
+        if args:
+            self.message = args[0]
+        else:
+            self.message = self.__doc__
+
+    def __str__(self):
+        return f'{self.message}'
+
+
+class IncorrectDataTypeError(Exception):
+    """Некорректные тип данных в ответе."""
+    def __init__(self, *args):
+        if args:
+            self.message = args[0]
+        else:
+            self.message = self.__doc__
+
+    def __str__(self):
+        return f'{self.message}'
+
+
 def send_message(bot, message):
     """Отправляет сообщение в чат."""
     try:
+        logger.info('Бот начал отправлять сообщение.')
         bot.send_message(TELEGRAM_CHAT_ID, message)
         logger.info('Бот отправил сообщение')
     except Exception as error:
-        logger.error(f'Сбой при отправке сообщения: {error}')
+        raise Exception(f'Сбой при отправке сообщения: {error}')
 
 
 def get_api_answer(current_timestamp):
@@ -55,83 +86,125 @@ def get_api_answer(current_timestamp):
     params = {'from_date': timestamp}
 
     try:
+        logger.info('Бот делает запрос к API')
         response = requests.get(
             ENDPOINT,
             headers=HEADERS,
             params=params
         )
         if response.status_code != HTTPStatus.OK:
-            raise Exception(f'Статус ответа {response.status_code}')
+            raise AnswerStatusIsNot200Error(
+                f'"{ENDPOINT} не отвечает. '
+                f'Статус ответа: {response.status_code}'
+            )
         return response.json()
-    except ValueError as error:
-        logger.error(f'Ошибка при запросе к основному API: {error}')
+    except Exception as error:
+        raise RequestReceivingError(
+            f'Ошибка при запросе к основному API: {error}'
+        )
 
 
 def check_response(response):
     """Проверяет ответ API на корректность."""
+    logger.info('Проверка корректности ответа')
+
     try:
-        homeworks_list = response['homeworks']
+        homeworks = response['homeworks']
+        if not isinstance(homeworks[0], dict):
+            raise IncorrectDataTypeError(
+                f'У ответа некорректный тип данных: {type(response)}'
+            )
     except KeyError as error:
-        logger.error(f'Ошибка доступа по ключу homeworks: {error}')
-    if homeworks_list is None:
-        raise Exception('В ответе API нет словаря')
-    if len(homeworks_list) == 0:
-        raise Exception('За последнее время нет домашних заданий')
-    if not isinstance(homeworks_list, list):
-        raise Exception(
+        raise KeyError(f'Ошибка доступа по ключу homeworks: {error}')
+
+    try:
+        response['current_date']
+    except KeyError as error:
+        raise KeyError(f'Ошибка доступа по ключу current_date: {error}')
+
+    if not isinstance(homeworks, list):
+        raise IncorrectDataTypeError(
             'В ответе API домашние задания представлены не списком'
         )
-    return homeworks_list
+    if homeworks is None:
+        raise Exception('В ответе API нет словаря')
+
+    return homeworks
 
 
 def parse_status(homework):
     """Извлекает из информации о домашке ее статус."""
+    logger.info('Уточнение статуса проверки.')
+
     try:
         homework_name = homework['homework_name']
-    except TypeError as error:
-        logger.error(f'Ошибка доступа по ключу homework_name: {error}')
+    except KeyError as error:
+        raise KeyError(f'Ошибка доступа по ключу homework_name: {error}')
 
     try:
         homework_status = homework['status']
-    except KeyError:
-        logger.error('На запрос статуса работы получен неизвестный статус.')
+    except KeyError as error:
+        raise KeyError(f'Ошибка доступа по ключу status: {error}')
 
     try:
         verdict = HOMEWORK_STATUSES[homework_status]
-    except Exception as error:
-        logger.error(
-            f'На запрос статуса работы получен неизвестный статус.{error}')
+    except KeyError as error:
+        raise KeyError(
+            f'Получен неизвестный статус проверки домашней работы.{error}'
+        )
+
     return f'Изменился статус проверки работы "{homework_name}". {verdict}'
 
 
 def check_tokens():
     """Проверяет доступность переменных окружения."""
-    return all([TELEGRAM_TOKEN, TELEGRAM_CHAT_ID, PRACTICUM_TOKEN])
+    keys = [TELEGRAM_TOKEN, TELEGRAM_CHAT_ID, PRACTICUM_TOKEN]
+    check = True
+    for key in keys:
+        if key is None:
+            logger.critical(f'Нет токена {key}')
+            check = False
+    return check
 
 
 def main():
     """Основная логика работы бота."""
     if not check_tokens():
-        logger.critical('Отсутствует необходимая переменная среды')
-        raise Exception('Отсутствует необходимая переменная среды')
+        sys.exit(1)
 
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
     current_timestamp = int(time.time())
+    previous_status = None
+    previous_error = None
 
     while True:
         try:
             response = get_api_answer(current_timestamp)
+            current_timestamp = response['current_date']
             result = check_response(response)
-            message = parse_status(result[0])
-            send_message(bot, message)
+            if result[0] is not None:
+                message = parse_status(result[0])
+            else:
+                message = 'За последнее время нет домашних заданий'
+            logger.info(message)
+            status = message
+            if status != previous_status:
+                previous_status = status
+                send_message(bot, message)
         except Exception as error:
-            logger.error(error, exc_info=False)
-            if str(error) != 'За последнее время нет домашних заданий':
+            if str(error) != previous_error:
+                previous_error = str(error)
+                logger.error(error, exc_info=False)
                 send_message(bot, str(error))
-
-        current_timestamp = int(time.time())
-        time.sleep(RETRY_TIME)
+        finally:
+            time.sleep(RETRY_TIME)
 
 
 if __name__ == '__main__':
+    logging.basicConfig(
+        level=logging.INFO,
+        format=('%(asctime)s - [%(levelname)s] - %(name)s - '
+                '(%(filename)s).%(funcName)s(%(lineno)d) - %(message)s')
+    )
+
     main()
