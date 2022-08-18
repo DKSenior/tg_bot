@@ -1,12 +1,12 @@
 import logging
 import os
-import sys
-import telegram
-import time
 import requests
+import time
 
 from dotenv import load_dotenv
 from http import HTTPStatus
+from utils import (AnswerStatusIsNot200Error, RequestReceivingError,
+                   IncorrectDataTypeError, SendMessageError)
 
 logger = logging.getLogger(__name__)
 handler = logging.StreamHandler()
@@ -23,7 +23,6 @@ PRACTICUM_TOKEN = os.getenv('PRACTICUM_TOKEN')
 TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
 TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
 
-RETRY_TIME = 600
 ENDPOINT = 'https://practicum.yandex.ru/api/user_api/homework_statuses/'
 HEADERS = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
 
@@ -34,49 +33,16 @@ HOMEWORK_STATUSES = {
 }
 
 
-class AnswerStatusIsNot200Error(Exception):
-    """Статус ответа не равен значению 200."""
-
-    def __init__(self, *args):
-        """Формирует сообщение об ошибке."""
-        if args:
-            self.message = args[0]
-        else:
-            self.message = self.__doc__
-
-    def __str__(self):
-        """Выводит сообщение об ошибке."""
-        return f'{self.message} '
-
-
-class RequestReceivingError(Exception):
-    """Ошибка получения ответа на запрос."""
-
-    def __init__(self, *args):
-        """Формирует сообщение об ошибке."""
-        if args:
-            self.message = args[0]
-        else:
-            self.message = self.__doc__
-
-    def __str__(self):
-        """Выводит сообщение об ошибке."""
-        return f'{self.message}'
-
-
-class IncorrectDataTypeError(Exception):
-    """Некорректные тип данных в ответе."""
-
-    def __init__(self, *args):
-        """Формирует сообщение об ошибке."""
-        if args:
-            self.message = args[0]
-        else:
-            self.message = self.__doc__
-
-    def __str__(self):
-        """Выводит сообщение об ошибке."""
-        return f'{self.message}'
+def check_tokens():
+    """Проверяет доступность переменных окружения."""
+    keys = (TELEGRAM_TOKEN, TELEGRAM_CHAT_ID, PRACTICUM_TOKEN)
+    check = True
+    for key in keys:
+        if key is None:
+            logger.critical(f'Нет токена {key}')
+            print(os.getenv('TMP'))
+            check = False
+    return check
 
 
 def send_message(bot, message):
@@ -86,7 +52,7 @@ def send_message(bot, message):
         bot.send_message(TELEGRAM_CHAT_ID, message)
         logger.info('Бот отправил сообщение')
     except Exception as error:
-        raise Exception(f'Ошибка при отправке сообщения: {error}')
+        raise SendMessageError(f'Ошибка при отправке сообщения: {error}')
 
 
 def get_api_answer(current_timestamp):
@@ -135,8 +101,6 @@ def check_response(response):
         raise IncorrectDataTypeError(
             f'У ответа некорректный тип данных: {type(homeworks)}'
         )
-    if homeworks is None:
-        raise Exception('В ответе API нет словаря')
 
     return homeworks
 
@@ -148,12 +112,12 @@ def parse_status(homework):
     try:
         homework_name = homework['homework_name']
     except KeyError as error:
-        raise KeyError(f'Ошибка доступа по ключу homework_name: {error}')
+        raise KeyError(f'Отсутствует ключ homework_name: {error}')
 
     try:
         homework_status = homework['status']
     except KeyError as error:
-        raise KeyError(f'Ошибка доступа по ключу status: {error}')
+        raise KeyError(f'Отсутствует ключ status: {error}')
 
     try:
         verdict = HOMEWORK_STATUSES[homework_status]
@@ -163,57 +127,3 @@ def parse_status(homework):
         )
 
     return f'Изменился статус проверки работы "{homework_name}". {verdict}'
-
-
-def check_tokens():
-    """Проверяет доступность переменных окружения."""
-    keys = [TELEGRAM_TOKEN, TELEGRAM_CHAT_ID, PRACTICUM_TOKEN]
-    check = True
-    for key in keys:
-        if key is None:
-            logger.critical(f'Нет токена {key}')
-            check = False
-    return check
-
-
-def main():
-    """Основная логика работы бота."""
-    if not check_tokens():
-        sys.exit(1)
-
-    bot = telegram.Bot(token=TELEGRAM_TOKEN)
-    current_timestamp = int(time.time())
-    previous_status = None
-    previous_error = None
-
-    while True:
-        try:
-            response = get_api_answer(current_timestamp)
-            current_timestamp = response['current_date']
-            result = check_response(response)
-            if len(result) != 0:
-                message = parse_status(result[0])
-            else:
-                message = 'За последнее время нет домашних заданий'
-            logger.info(message)
-            status = message
-            if status != previous_status:
-                previous_status = status
-                send_message(bot, message)
-        except Exception as error:
-            if str(error) != previous_error:
-                previous_error = str(error)
-                logger.error(error, exc_info=True)
-                send_message(bot, str(error))
-        finally:
-            time.sleep(RETRY_TIME)
-
-
-if __name__ == '__main__':
-    logging.basicConfig(
-        level=logging.INFO,
-        format=('%(asctime)s - [%(levelname)s] - %(name)s - '
-                '(%(filename)s).%(funcName)s(%(lineno)d) - %(message)s')
-    )
-
-    main()
