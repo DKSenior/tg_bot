@@ -1,12 +1,13 @@
 import logging
 import os
-import requests
 import time
-
-from dotenv import load_dotenv
 from http import HTTPStatus
-from utils import (AnswerStatusIsNot200Error, RequestReceivingError,
-                   IncorrectDataTypeError, SendMessageError)
+
+import requests
+from dotenv import load_dotenv
+
+from utils import (AnswerStatusIsNot200Error, IncorrectDataTypeError,
+                   RequestReceivingError, SendMessageError)
 
 logger = logging.getLogger(__name__)
 handler = logging.StreamHandler()
@@ -42,7 +43,7 @@ def check_tokens():
             logger.critical(f'Нет токена {key}')
             print(os.getenv('TMP'))
             check = False
-    return check
+    return True if check else False
 
 
 def send_message(bot, message):
@@ -90,12 +91,12 @@ def check_response(response):
     try:
         homeworks = response['homeworks']
     except KeyError as error:
-        raise KeyError(f'Ошибка доступа по ключу homeworks: {error}')
+        raise KeyError(f'Отсутствует ключ homeworks: {error}')
 
     try:
         response['current_date']
     except KeyError as error:
-        raise KeyError(f'Ошибка доступа по ключу current_date: {error}')
+        raise KeyError(f'Отсутствует ключ current_date: {error}')
 
     if not isinstance(homeworks, list):
         raise IncorrectDataTypeError(

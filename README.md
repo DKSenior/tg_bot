@@ -1,2 +1,2 @@
-# homework_bot
-python telegram bot
+# Telegram Bot by DKSenior
+A bot created as part of the training.

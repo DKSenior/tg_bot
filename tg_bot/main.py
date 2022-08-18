@@ -34,7 +34,6 @@ def main():
     bot = telegram.Bot(token=TELEGRAM_TOKEN)
     current_timestamp = int(time.time())
     previous_status = None
-    previous_error = None
 
     while True:
         try:
@@ -55,9 +54,9 @@ def main():
                 time.sleep(1)
                 send_message(bot, message)
         except Exception as error:
-            if str(error) != previous_error:
-                previous_error = str(error)
-                logger.error(error, exc_info=False)
+            logger.error(error, exc_info=False)
+            if str(error) != previous_status:
+                previous_status = str(error)
                 send_message(bot, str(error))
         finally:
             updater.dispatcher.add_handler(CommandHandler('start', wake_up))
