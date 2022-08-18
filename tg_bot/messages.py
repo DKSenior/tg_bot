@@ -24,10 +24,10 @@ def wake_up(update, context):
     ], resize_keyboard=True)
     context.bot.send_message(
         chat_id=chat.id,
-        text=f'Привет! Рад тебя видеть, {name}!\n '
+        text=f'Привет! Рад тебя видеть, {name}!\n\n '
              'Напиши мне команду:\n'
              '/kitty - я пришлю фото котика\n'
-             '/time - если нужно уточнить точное время\n'
+             '/time - если нужно уточнить точное время (по серверу)\n'
              '/myip - если хочешь узнать свой IP\n'
              '/start - я пришлю инструкцию',
         reply_markup=button
@@ -60,7 +60,7 @@ def new_cat(update, context):
 def get_time(update, context):
     date = update.message.date.strftime("%H:%M:%S")
     chat = update.effective_chat
-    message = f'Текущее время: {date}'
+    message = f'Текущее время по северу: {date}'
 
     try:
         context.bot.send_message(chat.id, text=message)
