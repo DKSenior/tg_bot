@@ -1,7 +1,7 @@
 import datetime
 import logging
 import requests
-import time
+
 
 from telegram import ReplyKeyboardMarkup
 
@@ -58,10 +58,9 @@ def new_cat(update, context):
 
 
 def get_time(update, context):
-    current_time = int(update.message.date)
-    date = datetime.datetime.fromtimestamp(current_time)
+    date = update.message.date.strftime("%H:%M:%S")
     chat = update.effective_chat
-    message = f'Текущее время: {date.strftime("%H:%M:%S")}'
+    message = f'Текущее время: {date}'
 
     try:
         context.bot.send_message(chat.id, text=message)
