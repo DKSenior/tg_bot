@@ -20,7 +20,7 @@ def wake_up(update, context):
     name = update.message.chat.first_name
     button = ReplyKeyboardMarkup([
         ['/start', '/kitty'],
-        ['/time', '/myip']
+        ['/time', '/getip']
     ], resize_keyboard=True)
     context.bot.send_message(
         chat_id=chat.id,
@@ -28,7 +28,7 @@ def wake_up(update, context):
              'Напиши мне команду:\n'
              '/kitty - я пришлю фото котика\n'
              '/time - если нужно уточнить точное время (по серверу)\n'
-             '/myip - если хочешь узнать свой IP\n'
+             '/getip - если хочешь узнать IP сервера\n'
              '/start - я пришлю инструкцию',
         reply_markup=button
     )

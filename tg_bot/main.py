@@ -62,7 +62,7 @@ def main():
             updater.dispatcher.add_handler(CommandHandler('start', wake_up))
             updater.dispatcher.add_handler(CommandHandler('kitty', new_cat))
             updater.dispatcher.add_handler(CommandHandler('time', get_time))
-            updater.dispatcher.add_handler(CommandHandler('myip', get_ip))
+            updater.dispatcher.add_handler(CommandHandler('getip', get_ip))
 
             time.sleep(RETRY_TIME)
 
