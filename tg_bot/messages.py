@@ -1,7 +1,6 @@
 import logging
-import datetime
-
 import requests
+import datetime
 
 from telegram import ReplyKeyboardMarkup
 
@@ -58,7 +57,7 @@ def new_cat(update, context):
 
 
 def get_time(update, context):
-    date = datetime.datetime.now()
+    date = datetime.datetime.now("%H:%M:%S")
     chat = update.effective_chat
     message = f'Текущее время по северу: {date}'
 
@@ -77,7 +76,3 @@ def get_ip(update, context):
         context.bot.send_message(chat.id, text=response)
     except Exception as error:
         logging.error(f'Ошибка при запросе к {url}: {error}')
-
-
-
-
