@@ -1,6 +1,7 @@
 import logging
-import requests
+import datetime
 
+import requests
 
 from telegram import ReplyKeyboardMarkup
 
@@ -57,7 +58,7 @@ def new_cat(update, context):
 
 
 def get_time(update, context):
-    date = update.message.date.strftime("%H:%M:%S")
+    date = datetime.datetime.now()
     chat = update.effective_chat
     message = f'Текущее время по северу: {date}'
 
