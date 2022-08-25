@@ -39,7 +39,6 @@ def check_tokens():
     keys = (TELEGRAM_TOKEN, PRACTICUM_TOKEN, TELEGRAM_CHATS_ID)
     check = True
     for key in keys:
-        print(key)
         if key is None:
             logger.critical(f'Нет токена {key}')
             print(os.getenv('TMP'))
