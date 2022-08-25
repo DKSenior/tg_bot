@@ -22,7 +22,7 @@ load_dotenv()
 
 PRACTICUM_TOKEN = os.getenv('PRACTICUM_TOKEN')
 TELEGRAM_TOKEN = os.getenv('TELEGRAM_TOKEN')
-TELEGRAM_CHAT_ID = os.getenv('TELEGRAM_CHAT_ID')
+TELEGRAM_CHATS_ID = os.getenv('TELEGRAM_CHATS_ID')
 
 ENDPOINT = 'https://practicum.yandex.ru/api/user_api/homework_statuses/'
 HEADERS = {'Authorization': f'OAuth {PRACTICUM_TOKEN}'}
@@ -36,9 +36,10 @@ HOMEWORK_STATUSES = {
 
 def check_tokens():
     """Проверяет доступность переменных окружения."""
-    keys = (TELEGRAM_TOKEN, TELEGRAM_CHAT_ID, PRACTICUM_TOKEN)
+    keys = (TELEGRAM_TOKEN, PRACTICUM_TOKEN, TELEGRAM_CHATS_ID)
     check = True
     for key in keys:
+        print(key)
         if key is None:
             logger.critical(f'Нет токена {key}')
             print(os.getenv('TMP'))
@@ -49,9 +50,10 @@ def check_tokens():
 def send_message(bot, message):
     """Отправляет сообщение в чат."""
     try:
-        logger.info('Бот начал отправлять сообщение.')
-        bot.send_message(TELEGRAM_CHAT_ID, message)
-        logger.info('Бот отправил сообщение')
+        for TELEGRAM_CHAT_ID in TELEGRAM_CHATS_ID.split():
+            logger.info('Бот начал отправлять сообщение.')
+            bot.send_message(TELEGRAM_CHAT_ID, message)
+            logger.info('Бот отправил сообщение')
     except Exception as error:
         raise SendMessageError(f'Ошибка при отправке сообщения: {error}')
 

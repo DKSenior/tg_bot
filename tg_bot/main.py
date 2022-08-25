@@ -6,7 +6,7 @@ import time
 from homework import (get_api_answer, check_response, check_tokens,
                       parse_status, send_message)
 
-from homework import TELEGRAM_TOKEN, TELEGRAM_CHAT_ID
+from homework import TELEGRAM_TOKEN, TELEGRAM_CHATS_ID
 from messages import get_ip, get_time, wake_up, new_cat
 
 from telegram.ext import Updater, CommandHandler
@@ -47,10 +47,11 @@ def main():
             logger.info(message)
             if message != previous_status:
                 previous_status = message
-                bot.send_chat_action(
-                    chat_id=TELEGRAM_CHAT_ID,
-                    action=telegram.ChatAction.TYPING
-                )
+                for TELEGRAM_CHAT_ID in TELEGRAM_CHATS_ID.split():
+                    bot.send_chat_action(
+                        chat_id=TELEGRAM_CHAT_ID,
+                        action=telegram.ChatAction.TYPING
+                    )
                 time.sleep(1)
                 send_message(bot, message)
         except Exception as error:
