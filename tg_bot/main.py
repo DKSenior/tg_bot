@@ -7,7 +7,7 @@ from homework import (get_api_answer, check_response, check_tokens,
                       parse_status, send_message)
 
 from homework import TELEGRAM_TOKEN, TELEGRAM_CHATS_ID
-from messages import get_ip, get_time, wake_up, new_cat
+from messages import get_time, new_dog, new_cat, wake_up
 
 from telegram.ext import Updater, CommandHandler
 
@@ -63,7 +63,7 @@ def main():
             updater.dispatcher.add_handler(CommandHandler('start', wake_up))
             updater.dispatcher.add_handler(CommandHandler('kitty', new_cat))
             updater.dispatcher.add_handler(CommandHandler('time', get_time))
-            updater.dispatcher.add_handler(CommandHandler('getip', get_ip))
+            updater.dispatcher.add_handler(CommandHandler('doggy', new_dog))
 
             time.sleep(RETRY_TIME)
 

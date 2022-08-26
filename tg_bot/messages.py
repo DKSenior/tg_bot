@@ -27,20 +27,26 @@ def wake_up(update, context):
              'Напиши мне команду:\n'
              '/kitty - я пришлю фото котика\n'
              '/time - если нужно уточнить точное время (по серверу)\n'
-             '/getip - если хочешь узнать IP сервера\n'
+             '/doggy - я пришлю фото собачки\n'
              '/start - я пришлю инструкцию',
         reply_markup=button
     )
 
 
-def get_new_image():
-    url = 'https://api.thecatapi.com/v1/images/search'
+def get_new_image(pet):
+    if pet == 'dog':
+        url = 'https://api.thedogapi.com/v1/images/search'
+    else:
+        url = 'https://api.thecatapi.com/v1/images/search'
 
     try:
         response = requests.get(url)
     except Exception as error:
         logging.error(f'Ошибка при запросе к {url}: {error}')
-        new_url = 'https://api.thedogapi.com/v1/images/search'
+        if pet == 'dog':
+            new_url = 'https://api.thecatapi.com/v1/images/search'
+        else:
+            new_url = 'https://api.thedogapi.com/v1/images/search'
         response = requests.get(new_url)
 
     response = response.json()
@@ -51,7 +57,15 @@ def get_new_image():
 def new_cat(update, context):
     try:
         chat = update.effective_chat
-        context.bot.send_photo(chat.id, get_new_image())
+        context.bot.send_photo(chat.id, get_new_image('cat'))
+    except Exception as error:
+        logger.error(f'Невозможно получить картинку: {error}')
+
+
+def new_dog(update, context):
+    try:
+        chat = update.effective_chat
+        context.bot.send_photo(chat.id, get_new_image('dog'))
     except Exception as error:
         logger.error(f'Невозможно получить картинку: {error}')
 
